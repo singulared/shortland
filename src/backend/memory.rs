@@ -2,11 +2,10 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use tokio::sync::RwLock;
 use thiserror::Error;
+use tokio::sync::RwLock;
 
 use super::{Backend, BackendError};
-
 
 pub struct InMemoryBackend {
     storage: RwLock<(u64, HashMap<u64, String>)>,
@@ -23,7 +22,7 @@ impl Default for InMemoryBackend {
 #[derive(Error, Debug)]
 pub enum MemoryBackendError {
     #[error("Record not found")]
-    NotFound
+    NotFound,
 }
 
 #[async_trait]
@@ -53,4 +52,3 @@ impl Backend for InMemoryBackend {
         Ok(())
     }
 }
-

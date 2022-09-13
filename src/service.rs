@@ -1,6 +1,6 @@
-use crate::{shortener::Shortner, backend::Backend, settings::Config, errors::ServiceError};
+use crate::{backend::Backend, errors::ServiceError, settings::Config, shortener::Shortner};
 
-pub struct State<S, B> 
+pub struct State<S, B>
 where
     S: Shortner,
     B: Backend,
@@ -10,7 +10,7 @@ where
     pub config: Config,
 }
 
-impl<S, B> State<S, B> 
+impl<S, B> State<S, B>
 where
     S: Shortner,
     B: Backend,
@@ -25,32 +25,32 @@ where
 }
 
 #[derive(Default)]
-pub struct StateBuilder<S, B> 
+pub struct StateBuilder<S, B>
 where
     S: Shortner,
     B: Backend,
 {
     pub config: Option<Config>,
     pub backend: Option<B>,
-    pub shortner: Option<S>
+    pub shortner: Option<S>,
 }
 
 impl<S, B> StateBuilder<S, B>
 where
     S: Shortner,
-    B: Backend ,
+    B: Backend,
 {
     pub fn backend<NB: Backend>(self, backend: NB) -> StateBuilder<S, NB> {
-        StateBuilder { 
-            backend: Some(backend), 
+        StateBuilder {
+            backend: Some(backend),
             shortner: self.shortner,
             config: self.config,
         }
     }
 
     pub fn shortner<NS: Shortner>(self, shortener: NS) -> StateBuilder<NS, B> {
-        StateBuilder { 
-            backend: self.backend, 
+        StateBuilder {
+            backend: self.backend,
             shortner: Some(shortener),
             config: self.config,
         }
@@ -65,9 +65,15 @@ where
 
     pub fn build(self) -> Result<State<S, B>, ServiceError> {
         Ok(State {
-            shortner: self.shortner.ok_or(ServiceError::State("Uninitialized shortner"))?,
-            backend: self.backend.ok_or(ServiceError::State("Uninitialized backend"))?,
-            config: self.config.ok_or(ServiceError::State("Uninitialized config"))?,
+            shortner: self
+                .shortner
+                .ok_or(ServiceError::State("Uninitialized shortner"))?,
+            backend: self
+                .backend
+                .ok_or(ServiceError::State("Uninitialized backend"))?,
+            config: self
+                .config
+                .ok_or(ServiceError::State("Uninitialized config"))?,
         })
     }
 }

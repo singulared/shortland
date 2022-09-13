@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use harsh::{Harsh, HarshBuilder, BuildError};
+use harsh::{BuildError, Harsh, HarshBuilder};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -11,21 +11,19 @@ pub enum ShortnerError {
 }
 
 #[async_trait]
-pub trait Shortner {    
+pub trait Shortner {
     async fn decode<'a>(&self, url: &'a str) -> Result<u64, ShortnerError>;
     async fn encode(&self, id: u64) -> Result<String, ShortnerError>;
 }
 
 pub struct HashIds {
-    convertor: Harsh
+    convertor: Harsh,
 }
 
 impl HashIds {
     pub fn new(_salt: Option<String>) -> Result<Self, ShortnerError> {
         let convertor = HarshBuilder::new().build()?;
-        Ok(Self {
-            convertor
-        })
+        Ok(Self { convertor })
     }
 }
 

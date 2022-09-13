@@ -1,11 +1,11 @@
-use std::{fmt::Debug, error::Error};
+use std::{error::Error, fmt::Debug};
 
 use async_trait::async_trait;
-use chrono::{Utc, DateTime};
+use chrono::{DateTime, Utc};
 use thiserror::Error;
 
-pub mod redis;
 pub mod memory;
+pub mod redis;
 
 #[derive(Error, Debug)]
 pub enum BackendError {

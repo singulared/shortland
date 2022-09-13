@@ -16,7 +16,7 @@ use shortland::{
 };
 use tower::ServiceBuilder;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
-use tracing::{Level, info};
+use tracing::{info, Level};
 use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 fn initialize_logging(level: &LoggingLevel) {
@@ -66,7 +66,10 @@ async fn main() -> Result<()> {
             .context("Unable to parse server ip")?,
         config.http.port,
     );
-    info!("Run application on {}:{}", config.http.host, config.http.port);
+    info!(
+        "Run application on {}:{}",
+        config.http.host, config.http.port
+    );
     Server::try_bind(&address)
         .context("Unable to bind a server")?
         .serve(app.into_make_service())

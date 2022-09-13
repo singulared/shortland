@@ -46,7 +46,7 @@ pub struct Logging {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RedisBackend {
-    pub connection: String
+    pub connection: String,
 }
 
 impl Default for RedisBackend {
