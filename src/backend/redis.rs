@@ -58,7 +58,9 @@ impl RedisBackend {
                 if version.major < 7 {
                     error!("Unsuported redis version. Supported >= 7.0");
                     Err(BackendError::UnsupportedVersion)
-                } else { Ok(()) }
+                } else {
+                    Ok(())
+                }
             }
             None => {
                 warn!(
@@ -76,8 +78,7 @@ impl RedisBackend {
             .query_async::<_, String>(&mut self.client.clone())
             .await
             .unwrap_or_default();
-        info
-            .split("\n")
+        info.split("\n")
             .into_iter()
             .find(|line| line.trim().starts_with("redis_version:"))
             .map(str::trim)
