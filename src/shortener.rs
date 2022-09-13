@@ -1,43 +1,43 @@
 use async_trait::async_trait;
-use harsh::{Harsh, HarshBuilder};
+use harsh::{Harsh, HarshBuilder, BuildError};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ShortnerError {
+    #[error("Shortner initialization error: {0}")]
+    Initialization(#[from] BuildError),
+    #[error("Shorten Decode error")]
+    Decode(#[from] harsh::Error),
+}
 
 #[async_trait]
 pub trait Shortner {    
-    async fn decode<'a>(&self, url: &'a str) -> u64;
-    async fn encode(&self, id: u64) -> String;
+    async fn decode<'a>(&self, url: &'a str) -> Result<u64, ShortnerError>;
+    async fn encode(&self, id: u64) -> Result<String, ShortnerError>;
 }
 
 pub struct HashIds {
     convertor: Harsh
 }
 
-// impl Clone for HashIds {
-    // fn clone(&self) -> Self {
-        // dbg!("++++++++++++++++++++");
-        // HashIds {
-            // convertor: self.convertor.clone()
-        // }
-    // }
-// }
-
 impl HashIds {
-    pub fn new(_salt: Option<String>) -> Self {
-        let convertor = HarshBuilder::new().build().unwrap();
-        Self {
+    pub fn new(_salt: Option<String>) -> Result<Self, ShortnerError> {
+        let convertor = HarshBuilder::new().build()?;
+        Ok(Self {
             convertor
-        }
+        })
     }
 }
 
 #[async_trait]
 impl Shortner for HashIds {
-    async fn decode<'a>(&self, url: &'a str) -> u64 {
-        let a = self.convertor.decode(url);
+    async fn decode<'a>(&self, url: &'a str) -> Result<u64, ShortnerError> {
+        let a = self.convertor.decode(url)?;
         dbg!(&a);
-        a.unwrap()[0]
+        Ok(a[0])
     }
 
-    async fn encode(&self, id: u64) -> String {
-        self.convertor.encode(&[id])
+    async fn encode(&self, id: u64) -> Result<String, ShortnerError> {
+        Ok(self.convertor.encode(&[id]))
     }
 }

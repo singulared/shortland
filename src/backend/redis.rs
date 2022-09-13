@@ -1,10 +1,9 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
-use redis::{aio::ConnectionManager, Client, IntoConnectionInfo, Script};
-use thiserror::Error;
+use redis::{aio::ConnectionManager, Client, IntoConnectionInfo, Script, RedisError};
 use uuid::Uuid;
 
-use super::Backend;
+use super::{Backend, BackendError};
 
 static STORE_SCRIPT: &str = r"
 local id = redis.call('INCR', 'LID');
@@ -33,12 +32,18 @@ static KEY_DATE_FORMAT: &str = "%Y%m%d";
 
 static DEFAULT_STAT_PERIOD_IN_HOURS: i64 = 24;
 
+impl From<RedisError> for BackendError {
+    fn from(error: RedisError) -> Self {
+        BackendError::Internal(Box::new(error))
+    }
+}
+
 pub struct RedisBackend {
     client: ConnectionManager,
 }
 
 impl RedisBackend {
-    pub async fn new<T: IntoConnectionInfo>(connection_info: T) -> Result<Self, RedisBackendError> {
+    pub async fn new<T: IntoConnectionInfo>(connection_info: T) -> Result<Self, BackendError> {
         let connection = Client::open(connection_info)?;
         Ok(Self {
             client: connection.get_tokio_connection_manager().await?,
@@ -46,26 +51,16 @@ impl RedisBackend {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum RedisBackendError {
-    #[error(transparent)]
-    Client(#[from] redis::RedisError),
-    #[error("Shorten not found")]
-    NotFound,
-}
-
 #[async_trait]
 impl Backend for RedisBackend {
-    type Error = RedisBackendError;
-
-    async fn store<'a>(&self, url: &'a str) -> Result<u64, Self::Error> {
+    async fn store<'a>(&self, url: &'a str) -> Result<u64, BackendError> {
         let mut con = self.client.clone();
         let script = Script::new(STORE_SCRIPT);
         let result = script.arg(url).invoke_async(&mut con).await?;
         Ok(result)
     }
 
-    async fn retrive(&self, id: u64) -> Result<String, Self::Error> {
+    async fn retrive(&self, id: u64) -> Result<String, BackendError> {
         let mut con = self.client.clone();
         let uuid = Uuid::new_v4();
         let now = Utc::now();
@@ -78,12 +73,13 @@ impl Backend for RedisBackend {
             .arg(date)
             .arg(ts)
             .arg(member)
-            .invoke_async(&mut con)
-            .await?;
+            .invoke_async::<_, Option<String>>(&mut con)
+            .await?
+            .ok_or(BackendError::NotFound)?;
         Ok(result)
     }
 
-    async fn stat(&self, id: u64, since: Option<DateTime<Utc>>) -> Result<u64, Self::Error> {
+    async fn stat(&self, id: u64, since: Option<DateTime<Utc>>) -> Result<u64, BackendError> {
         let mut con = self.client.clone();
         let now = Utc::now();
         let today = now.date();
@@ -103,7 +99,7 @@ impl Backend for RedisBackend {
         Ok(stat)
     }
 
-    async fn update<'a>(&self, id: u64, url: &'a str) -> Result<(), Self::Error> {
+    async fn update<'a>(&self, id: u64, url: &'a str) -> Result<(), BackendError> {
         let mut con = self.client.clone();
         let res: Option<()> = redis::cmd("SET")
             .arg(id)
@@ -111,11 +107,11 @@ impl Backend for RedisBackend {
             .arg("XX")
             .query_async(&mut con)
             .await
-            .map_err(RedisBackendError::from)?;
-        res.ok_or(RedisBackendError::NotFound)
+            .map_err(BackendError::from)?;
+        res.ok_or(BackendError::NotFound)
     }
 
-    async fn delete(&self, id: u64) -> Result<(), Self::Error> {
+    async fn delete(&self, id: u64) -> Result<(), BackendError> {
         let mut con = self.client.clone();
         let today = Utc::now().date();
         let yesterday = today.pred();
@@ -125,9 +121,9 @@ impl Backend for RedisBackend {
             .arg(format!("stat:{}:{}", id, yesterday.format(KEY_DATE_FORMAT)))
             .query_async(&mut con)
             .await
-            .map_err(RedisBackendError::from)?;
+            .map_err(BackendError::from)?;
         if res == 0 {
-            Err(RedisBackendError::NotFound)
+            Err(BackendError::NotFound)
         } else {
             Ok(())
         }
