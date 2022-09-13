@@ -8,4 +8,4 @@ pub mod service;
 pub mod settings;
 pub mod shortener;
 
-pub type AppState = State<HashIds, RedisBackend>;
+pub type AppState = State<HashIds>;

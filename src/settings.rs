@@ -44,11 +44,33 @@ pub struct Logging {
     pub level: LoggingLevel,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RedisBackend {
+    pub connection: String
+}
+
+impl Default for RedisBackend {
+    fn default() -> Self {
+        Self {
+            connection: "redis://localhost:6379/0".to_owned(),
+        }
+    }
+}
+
+#[derive(Serialize, Default, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum Backend {
+    Redis(RedisBackend),
+    #[default]
+    InMemory,
+}
+
 #[derive(Default, Debug, Deserialize, Serialize, Clone)]
 #[serde(default)]
 pub struct Config {
     pub http: Http,
     pub logging: Logging,
+    pub backend: Backend,
 }
 
 impl Config {

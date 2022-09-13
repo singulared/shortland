@@ -8,7 +8,7 @@ use axum::{
 use shortland::{
     backend::{memory::InMemoryBackend, redis::RedisBackend},
     handlers::{create_shorten, expand_shorten, get_stat_by_shorten, update_shorten, delete_shorten},
-    settings::{Config, LoggingLevel},
+    settings::{Config, LoggingLevel, Backend},
     shortener::HashIds,
 };
 use tower::ServiceBuilder;
@@ -30,10 +30,14 @@ async fn main() -> Result<()> {
     initialize_logging(&config.logging.level);
 
     let shortner = HashIds::new(None);
-    let backend = RedisBackend::new("redis://localhost:6379/0").await?;
+    let backend: Box<dyn shortland::backend::Backend + Send + Sync> = match &config.backend {
+        Backend::Redis(backend_config) => Box::new(RedisBackend::new(backend_config.connection.as_str()).await.unwrap()),
+        Backend::InMemory => Box::new(InMemoryBackend::default()),
+    };
+    // let backend = RedisBackend::new("redis://localhost:6379/0").await?;
     use shortland::AppState;
 
-    let _backend2 = InMemoryBackend::default();
+    // let _backend2 = InMemoryBackend::default();
 
     let state = AppState::builder()
         .shortner(shortner)

@@ -8,16 +8,16 @@ use axum::{
 
 use crate::{backend::Backend, service, shortener::Shortner};
 
-pub async fn create_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn create_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Json(url): Json<String>,
 ) -> (StatusCode, String) {
     let id = state.backend.store(&url).await.unwrap();
     (StatusCode::CREATED, state.shortner.encode(id).await)
 }
 
-pub async fn expand_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn expand_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Path(shorten): Path<String>,
 ) -> (StatusCode, HeaderMap) {
     let id = state.shortner.decode(&shorten).await;
@@ -27,8 +27,8 @@ pub async fn expand_shorten<S: Shortner, B: Backend>(
     (StatusCode::TEMPORARY_REDIRECT, headers)
 }
 
-pub async fn get_stat_by_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn get_stat_by_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Path(shorten): Path<String>,
 ) -> String {
     let id = state.shortner.decode(&shorten).await;
@@ -36,8 +36,8 @@ pub async fn get_stat_by_shorten<S: Shortner, B: Backend>(
     stat.to_string()
 }
 
-pub async fn update_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn update_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Path(shorten): Path<String>,
     Json(url): Json<String>
     ) -> StatusCode {
@@ -46,8 +46,8 @@ pub async fn update_shorten<S: Shortner, B: Backend>(
     StatusCode::CREATED
 }
 
-pub async fn delete_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn delete_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Path(shorten): Path<String>,
     ) -> StatusCode {
     let id = state.shortner.decode(&shorten).await;

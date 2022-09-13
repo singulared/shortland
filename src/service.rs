@@ -1,21 +1,19 @@
 use crate::{shortener::Shortner, backend::Backend, settings::Config};
 
-pub struct State<S, B> 
+pub struct State<S> 
 where
     S: Shortner,
-    B: Backend,
 {
     pub shortner: S,
-    pub backend: B,
+    pub backend: BoxedBackend,
     pub config: Config,
 }
 
-impl<S, B> State<S, B> 
+impl<S> State<S> 
 where
     S: Shortner,
-    B: Backend,
 {
-    pub fn builder() -> StateBuilder<S, B> {
+    pub fn builder() -> StateBuilder<S> {
         StateBuilder {
             shortner: None,
             backend: None,
@@ -25,45 +23,44 @@ where
 }
 
 #[derive(Default)]
-pub struct StateBuilder<S, B> 
+pub struct StateBuilder<S> 
 where
     S: Shortner,
-    B: Backend,
 {
     pub config: Option<Config>,
-    pub backend: Option<B>,
+    pub backend: Option<BoxedBackend>,
     pub shortner: Option<S>
 }
 
-impl<S, B> StateBuilder<S, B>
+type BoxedBackend = Box<dyn Backend + Sync + Send>;
+
+impl<S> StateBuilder<S>
 where
     S: Shortner,
-    B: Backend ,
 {
-    pub fn backend<NB: Backend>(self, backend: NB) -> StateBuilder<S, NB> {
+    pub fn backend(self, backend: BoxedBackend) -> StateBuilder<S> {
         StateBuilder { 
             backend: Some(backend), 
-            shortner: self.shortner,
-            config: self.config,
+            ..self
         }
     }
 
-    pub fn shortner<NS: Shortner>(self, shortener: NS) -> StateBuilder<NS, B> {
+    pub fn shortner<NS: Shortner>(self, shortener: NS) -> StateBuilder<NS> {
         StateBuilder { 
-            backend: self.backend, 
             shortner: Some(shortener),
+            backend: self.backend, 
             config: self.config,
         }
     }
 
-    pub fn config(self, config: Config) -> StateBuilder<S, B> {
+    pub fn config(self, config: Config) -> StateBuilder<S> {
         Self {
             config: Some(config),
             ..self
         }
     }
 
-    pub fn build(self) -> State<S, B> {
+    pub fn build(self) -> State<S> {
         State {
             shortner: self.shortner.unwrap(),
             backend: self.backend.unwrap(),
