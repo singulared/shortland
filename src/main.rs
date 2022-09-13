@@ -6,8 +6,8 @@ use axum::{
     Router, Server,
 };
 use shortland::{
-    backend::{RedisBackend, InMemoryBackend},
-    handlers::{create_shorten, expand_shorten},
+    backend::{memory::InMemoryBackend, redis::RedisBackend},
+    handlers::{create_shorten, expand_shorten, get_stat_by_shorten, update_shorten, delete_shorten},
     settings::{Config, LoggingLevel},
     shortener::HashIds,
 };
@@ -30,15 +30,15 @@ async fn main() -> Result<()> {
     initialize_logging(&config.logging.level);
 
     let shortner = HashIds::new(None);
-    let _backend = RedisBackend;
+    let backend = RedisBackend::new("redis://localhost:6379/0").await?;
     use shortland::AppState;
 
-    let backend2 = InMemoryBackend::default();
+    let _backend2 = InMemoryBackend::default();
 
     let state = AppState::builder()
         .shortner(shortner)
         .config(config.clone())
-        .backend(backend2)
+        .backend(backend)
         .build();
 
     let app = Router::with_state(Arc::new(state))
@@ -50,7 +50,8 @@ async fn main() -> Result<()> {
             }),
         )
         .route("/urls", post(create_shorten))
-        .route("/urls/:shorten", get(expand_shorten))
+        .route("/urls/:shorten", get(expand_shorten).put(update_shorten).delete(delete_shorten))
+        .route("/urls/:shorten/stats", get(get_stat_by_shorten))
         .layer(ServiceBuilder::new().layer(
             TraceLayer::new_for_http().on_response(DefaultOnResponse::new().level(Level::INFO)),
         ));

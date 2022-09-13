@@ -1,4 +1,4 @@
-use backend::RedisBackend;
+use backend::redis::RedisBackend;
 use service::State;
 use shortener::HashIds;
 
@@ -9,6 +9,3 @@ pub mod settings;
 pub mod shortener;
 
 pub type AppState = State<HashIds, RedisBackend>;
-
-#[derive(Debug, Clone)]
-pub struct ApplicationState {}
