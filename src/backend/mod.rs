@@ -15,6 +15,8 @@ pub enum BackendError {
     Internal(Box<dyn Error + Send + Sync>),
     #[error("Datetime overflow")]
     DateTimeOverflow,
+    #[error("Unsupported backend version")]
+    UnsupportedVersion,
 }
 
 #[async_trait]

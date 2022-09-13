@@ -1,6 +1,10 @@
+use std::str::FromStr;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use redis::{aio::ConnectionManager, Client, IntoConnectionInfo, RedisError, Script};
+use semver::Version;
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use super::{Backend, BackendError};
@@ -45,9 +49,43 @@ pub struct RedisBackend {
 impl RedisBackend {
     pub async fn new<T: IntoConnectionInfo>(connection_info: T) -> Result<Self, BackendError> {
         let connection = Client::open(connection_info)?;
-        Ok(Self {
-            client: connection.get_tokio_connection_manager().await?,
-        })
+        let client = connection.get_tokio_connection_manager().await?;
+        let backend = Self { client };
+        let version = backend.server_version().await;
+        match version {
+            Some(version) => {
+                info!("Redis server version: {}", version);
+                if version.major < 7 {
+                    error!("Unsuported redis version. Supported >= 7.0");
+                    Err(BackendError::UnsupportedVersion)
+                } else { Ok(()) }
+            }
+            None => {
+                warn!(
+                    "Redis server version: Unknown. Application should use only with redis >= 7.0"
+                );
+                Ok(())
+            }
+        }?;
+        Ok(backend)
+    }
+
+    async fn server_version(&self) -> Option<Version> {
+        let info = redis::cmd("INFO")
+            .arg("SERVER")
+            .query_async::<_, String>(&mut self.client.clone())
+            .await
+            .unwrap_or_default();
+        info
+            .split("\n")
+            .into_iter()
+            .find(|line| line.trim().starts_with("redis_version:"))
+            .map(str::trim)
+            .map(|version| version.split(":").skip(1).collect::<String>())
+            .map(|version| Version::from_str(version.as_str()))
+            .transpose()
+            .ok()
+            .flatten()
     }
 }
 
