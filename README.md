@@ -5,6 +5,9 @@ URL shortner service
 ### Rust installation
 You may follow [official instruction](https://www.rust-lang.org/tools/install)
 
+## Dependencies
+By default shortland use Redis >= 7.0
+
 ## Run
 ```cargo run``` or 
 ```cargo run --release``` if you want use release version of binary
