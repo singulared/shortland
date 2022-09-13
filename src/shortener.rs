@@ -31,7 +31,6 @@ impl HashIds {
 impl Shortner for HashIds {
     async fn decode<'a>(&self, url: &'a str) -> Result<u64, ShortnerError> {
         let a = self.convertor.decode(url)?;
-        dbg!(&a);
         Ok(a[0])
     }
 

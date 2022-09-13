@@ -1,5 +1,5 @@
 use axum::{
-    http::StatusCode,
+    http::{StatusCode, uri::InvalidUri},
     response::{IntoResponse, Response},
 };
 use thiserror::Error;
@@ -14,6 +14,8 @@ pub enum ServiceError {
     Sortner(#[from] ShortnerError),
     #[error("State builder error: {0}")]
     State(&'static str),
+    #[error("Invalid URI")]
+    InvalidURI(#[from] InvalidUri),
 }
 
 impl IntoResponse for ServiceError {
@@ -21,7 +23,8 @@ impl IntoResponse for ServiceError {
         match self {
             ServiceError::Backend(BackendError::NotFound) => StatusCode::NOT_FOUND.into_response(),
             ServiceError::Sortner(ShortnerError::Decode(_))
-            | ServiceError::Backend(BackendError::DateTimeOverflow) => {
+            | ServiceError::Backend(BackendError::DateTimeOverflow)
+            | ServiceError::InvalidURI(_) => {
                 StatusCode::BAD_REQUEST.into_response()
             }
             _ => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response(),

@@ -2,18 +2,21 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{StatusCode, Uri},
     response::Redirect,
-    Json,
 };
 
 use crate::{backend::Backend, errors::ServiceError, service, shortener::Shortner};
 
 pub async fn create_shorten<S: Shortner, B: Backend>(
     State(state): State<Arc<service::State<S, B>>>,
-    Json(url): Json<String>,
+    uri: String,
 ) -> std::result::Result<(StatusCode, String), ServiceError> {
-    let id = state.backend.store(&url).await?;
+    let validated_uri = uri.trim().parse::<Uri>()?;
+    let id = state
+        .backend
+        .store(validated_uri.to_string().as_str())
+        .await?;
     Ok((StatusCode::CREATED, state.shortner.encode(id).await?))
 }
 
@@ -22,8 +25,9 @@ pub async fn expand_shorten<S: Shortner, B: Backend>(
     Path(shorten): Path<String>,
 ) -> Result<Redirect, ServiceError> {
     let id = state.shortner.decode(&shorten).await?;
-    let url = state.backend.retrive(id).await?;
-    Ok(Redirect::temporary(url.as_str()))
+    let uri = state.backend.retrive(id).await?;
+    let validated_uri = uri.trim().parse::<Uri>()?;
+    Ok(Redirect::temporary(validated_uri.to_string().as_str()))
 }
 
 pub async fn get_stat_by_shorten<S: Shortner, B: Backend>(
@@ -38,10 +42,14 @@ pub async fn get_stat_by_shorten<S: Shortner, B: Backend>(
 pub async fn update_shorten<S: Shortner, B: Backend>(
     State(state): State<Arc<service::State<S, B>>>,
     Path(shorten): Path<String>,
-    Json(url): Json<String>,
+    uri: String,
 ) -> Result<StatusCode, ServiceError> {
+    let validated_uri = uri.trim().parse::<Uri>()?;
     let id = state.shortner.decode(&shorten).await?;
-    state.backend.update(id, &url).await?;
+    state
+        .backend
+        .update(id, validated_uri.to_string().as_str())
+        .await?;
     Ok(StatusCode::CREATED)
 }
 
