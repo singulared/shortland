@@ -1,4 +1,4 @@
-use crate::{shortener::Shortner, backend::Backend, settings::Config};
+use crate::{shortener::Shortner, backend::Backend, settings::Config, errors::ServiceError};
 
 pub struct State<S, B> 
 where
@@ -63,11 +63,11 @@ where
         }
     }
 
-    pub fn build(self) -> State<S, B> {
-        State {
-            shortner: self.shortner.unwrap(),
-            backend: self.backend.unwrap(),
-            config: self.config.unwrap(),
-        }
+    pub fn build(self) -> Result<State<S, B>, ServiceError> {
+        Ok(State {
+            shortner: self.shortner.ok_or(ServiceError::State("Uninitialized shortner"))?,
+            backend: self.backend.ok_or(ServiceError::State("Uninitialized backend"))?,
+            config: self.config.ok_or(ServiceError::State("Uninitialized config"))?,
+        })
     }
 }

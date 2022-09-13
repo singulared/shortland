@@ -12,6 +12,8 @@ pub enum ServiceError {
     Backend(#[from] BackendError),
     #[error(transparent)]
     Sortner(#[from] ShortnerError),
+    #[error("State builder error: {0}")]
+    State(&'static str),
 }
 
 impl IntoResponse for ServiceError {
