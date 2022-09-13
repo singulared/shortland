@@ -28,3 +28,17 @@ async fn test_create_shorten() -> Result<()> {
     assert_eq!(response.status(), StatusCode::CREATED);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_invalid_uri_create_shorten() -> Result<()> {
+    let config = test_config();
+    let app = application(&config).await?;
+    let response = app.oneshot(
+        Request::builder()
+            .uri("/urls")
+            .method(Method::POST)
+            .body(Body::from("\\"))?,
+    ).await?;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    Ok(())
+}
