@@ -7,8 +7,10 @@ use axum::{
 };
 use shortland::{
     backend::{memory::InMemoryBackend, redis::RedisBackend},
-    handlers::{create_shorten, expand_shorten, get_stat_by_shorten, update_shorten, delete_shorten},
-    settings::{Config, LoggingLevel, Backend},
+    handlers::{
+        create_shorten, delete_shorten, expand_shorten, get_stat_by_shorten, update_shorten,
+    },
+    settings::{Backend, Config, LoggingLevel},
     shortener::HashIds,
 };
 use tower::ServiceBuilder;
@@ -31,7 +33,11 @@ async fn main() -> Result<()> {
 
     let shortner = HashIds::new(None);
     let backend: Box<dyn shortland::backend::Backend + Send + Sync> = match &config.backend {
-        Backend::Redis(backend_config) => Box::new(RedisBackend::new(backend_config.connection.as_str()).await.unwrap()),
+        Backend::Redis(backend_config) => Box::new(
+            RedisBackend::new(backend_config.connection.as_str())
+                .await
+                .unwrap(),
+        ),
         Backend::InMemory => Box::new(InMemoryBackend::default()),
     };
     // let backend = RedisBackend::new("redis://localhost:6379/0").await?;
@@ -54,7 +60,12 @@ async fn main() -> Result<()> {
             }),
         )
         .route("/urls", post(create_shorten))
-        .route("/urls/:shorten", get(expand_shorten).put(update_shorten).delete(delete_shorten))
+        .route(
+            "/urls/:shorten",
+            get(expand_shorten)
+                .put(update_shorten)
+                .delete(delete_shorten),
+        )
         .route("/urls/:shorten/stats", get(get_stat_by_shorten))
         .layer(ServiceBuilder::new().layer(
             TraceLayer::new_for_http().on_response(DefaultOnResponse::new().level(Level::INFO)),
