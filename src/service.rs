@@ -1,4 +1,22 @@
-use crate::{backend::Backend, errors::ServiceError, settings::Config, shortener::Shortner};
+use std::sync::Arc;
+
+use anyhow::Context;
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use tower::ServiceBuilder;
+use tower_http::trace::{TraceLayer, DefaultOnResponse};
+use tracing::Level;
+
+use crate::{
+    backend::{redis::RedisBackend, Backend},
+    errors::ServiceError,
+    handlers::{create_shorten, expand_shorten, update_shorten, delete_shorten, get_stat_by_shorten},
+    settings::{self, Config},
+    shortener::{HashIds, Shortner},
+    AppState,
+};
 
 pub struct State<S, B>
 where
@@ -76,4 +94,34 @@ where
                 .ok_or(ServiceError::State("Uninitialized config"))?,
         })
     }
+}
+
+pub async fn application(config: &Config) -> anyhow::Result<Router<Arc<AppState>>> {
+    let shortner = HashIds::new(None).context("Unable to initialize shortner")?;
+    let backend = match &config.backend {
+        settings::Backend::Redis(backend_config) => {
+            RedisBackend::new(backend_config.connection.as_str()).await?
+        }
+    };
+
+    let state = AppState::builder()
+        .shortner(shortner)
+        .config(config.clone())
+        .backend(backend)
+        .build()
+        .context("Unable to initialize application state")?;
+
+    let app = Router::with_state(Arc::new(state))
+        .route("/urls", post(create_shorten))
+        .route(
+            "/urls/:shorten",
+            get(expand_shorten)
+                .put(update_shorten)
+                .delete(delete_shorten),
+        )
+        .route("/urls/:shorten/stats", get(get_stat_by_shorten))
+        .layer(ServiceBuilder::new().layer(
+            TraceLayer::new_for_http().on_response(DefaultOnResponse::new().level(Level::INFO)),
+        ));
+    Ok(app)
 }
