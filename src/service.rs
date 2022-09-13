@@ -6,34 +6,36 @@ use axum::{
     Router,
 };
 use tower::ServiceBuilder;
-use tower_http::trace::{TraceLayer, DefaultOnResponse};
+use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 
 use crate::{
-    backend::{redis::RedisBackend, Backend},
+    backend::{memory::InMemoryBackend, redis::RedisBackend, Backend},
     errors::ServiceError,
-    handlers::{create_shorten, expand_shorten, update_shorten, delete_shorten, get_stat_by_shorten},
+    handlers::{
+        create_shorten, delete_shorten, expand_shorten, get_stat_by_shorten, update_shorten,
+    },
     settings::{self, Config},
     shortener::{HashIds, Shortner},
     AppState,
 };
 
-pub struct State<S, B>
+type BoxedBackend = dyn Backend + Send + Sync;
+
+pub struct State<S>
 where
     S: Shortner,
-    B: Backend,
 {
     pub shortner: S,
-    pub backend: B,
+    pub backend: Box<BoxedBackend>,
     pub config: Config,
 }
 
-impl<S, B> State<S, B>
+impl<S> State<S>
 where
     S: Shortner,
-    B: Backend,
 {
-    pub fn builder() -> StateBuilder<S, B> {
+    pub fn builder() -> StateBuilder<S> {
         StateBuilder {
             shortner: None,
             backend: None,
@@ -43,30 +45,20 @@ where
 }
 
 #[derive(Default)]
-pub struct StateBuilder<S, B>
+pub struct StateBuilder<S>
 where
     S: Shortner,
-    B: Backend,
 {
     pub config: Option<Config>,
-    pub backend: Option<B>,
     pub shortner: Option<S>,
+    pub backend: Option<Box<BoxedBackend>>,
 }
 
-impl<S, B> StateBuilder<S, B>
+impl<S> StateBuilder<S>
 where
     S: Shortner,
-    B: Backend,
 {
-    pub fn backend<NB: Backend>(self, backend: NB) -> StateBuilder<S, NB> {
-        StateBuilder {
-            backend: Some(backend),
-            shortner: self.shortner,
-            config: self.config,
-        }
-    }
-
-    pub fn shortner<NS: Shortner>(self, shortener: NS) -> StateBuilder<NS, B> {
+    pub fn shortner<NS: Shortner>(self, shortener: NS) -> StateBuilder<NS> {
         StateBuilder {
             backend: self.backend,
             shortner: Some(shortener),
@@ -74,14 +66,21 @@ where
         }
     }
 
-    pub fn config(self, config: Config) -> StateBuilder<S, B> {
+    pub fn config(self, config: Config) -> StateBuilder<S> {
         Self {
             config: Some(config),
             ..self
         }
     }
 
-    pub fn build(self) -> Result<State<S, B>, ServiceError> {
+    pub fn backend(self, backend: Box<BoxedBackend>) -> StateBuilder<S> {
+        Self {
+            backend: Some(backend),
+            ..self
+        }
+    }
+
+    pub fn build(self) -> Result<State<S>, ServiceError> {
         Ok(State {
             shortner: self
                 .shortner
@@ -98,10 +97,13 @@ where
 
 pub async fn application(config: &Config) -> anyhow::Result<Router<Arc<AppState>>> {
     let shortner = HashIds::new(None).context("Unable to initialize shortner")?;
-    let backend = match &config.backend {
-        settings::Backend::Redis(backend_config) => {
-            RedisBackend::new(backend_config.connection.as_str()).await?
-        }
+    let backend: Box<BoxedBackend> = match &config.backend {
+        settings::Backend::Redis(backend_config) => Box::new(
+            RedisBackend::new(backend_config.connection.as_str())
+                .await
+                .context("Unable initialize redis backend")?,
+        ),
+        settings::Backend::InMemory => Box::new(InMemoryBackend::new()),
     };
 
     let state = AppState::builder()

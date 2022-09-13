@@ -6,7 +6,13 @@ URL shortner service
 You may follow [official instruction](https://www.rust-lang.org/tools/install)
 
 ## Dependencies
-By default shortland use Redis >= 7.0
+By default shortland use inmemory backend 
+Optionally you may use Redis >= 7.0. For enablle redis add this to config file:
+```yaml
+backend:
+  connection: redis://127.0.0.1:6379/0
+  type: Redis
+```
 
 ## Run
 ```cargo run``` or 

@@ -6,10 +6,10 @@ use axum::{
     response::Redirect,
 };
 
-use crate::{backend::Backend, errors::ServiceError, service, shortener::Shortner};
+use crate::{errors::ServiceError, service, shortener::Shortner};
 
-pub async fn create_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn create_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     uri: String,
 ) -> std::result::Result<(StatusCode, String), ServiceError> {
     let validated_uri = uri.trim().parse::<Uri>()?;
@@ -20,8 +20,8 @@ pub async fn create_shorten<S: Shortner, B: Backend>(
     Ok((StatusCode::CREATED, state.shortner.encode(id).await?))
 }
 
-pub async fn expand_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn expand_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Path(shorten): Path<String>,
 ) -> Result<Redirect, ServiceError> {
     let id = state.shortner.decode(&shorten).await?;
@@ -30,8 +30,8 @@ pub async fn expand_shorten<S: Shortner, B: Backend>(
     Ok(Redirect::temporary(validated_uri.to_string().as_str()))
 }
 
-pub async fn get_stat_by_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn get_stat_by_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Path(shorten): Path<String>,
 ) -> Result<String, ServiceError> {
     let id = state.shortner.decode(&shorten).await?;
@@ -39,8 +39,8 @@ pub async fn get_stat_by_shorten<S: Shortner, B: Backend>(
     Ok(stat.to_string())
 }
 
-pub async fn update_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn update_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Path(shorten): Path<String>,
     uri: String,
 ) -> Result<StatusCode, ServiceError> {
@@ -53,8 +53,8 @@ pub async fn update_shorten<S: Shortner, B: Backend>(
     Ok(StatusCode::CREATED)
 }
 
-pub async fn delete_shorten<S: Shortner, B: Backend>(
-    State(state): State<Arc<service::State<S, B>>>,
+pub async fn delete_shorten<S: Shortner>(
+    State(state): State<Arc<service::State<S>>>,
     Path(shorten): Path<String>,
 ) -> Result<StatusCode, ServiceError> {
     let id = state.shortner.decode(&shorten).await?;

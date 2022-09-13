@@ -48,6 +48,7 @@ pub struct RedisBackend {
 
 impl RedisBackend {
     pub async fn new<T: IntoConnectionInfo>(connection_info: T) -> Result<Self, BackendError> {
+        info!("Initialize Redis backend");
         let connection = Client::open(connection_info)?;
         let client = connection.get_tokio_connection_manager().await?;
         let backend = Self { client };
@@ -78,11 +79,11 @@ impl RedisBackend {
             .query_async::<_, String>(&mut self.client.clone())
             .await
             .unwrap_or_default();
-        info.split("\n")
+        info.split('\n')
             .into_iter()
             .find(|line| line.trim().starts_with("redis_version:"))
             .map(str::trim)
-            .map(|version| version.split(":").skip(1).collect::<String>())
+            .map(|version| version.split(':').skip(1).collect::<String>())
             .map(|version| Version::from_str(version.as_str()))
             .transpose()
             .ok()

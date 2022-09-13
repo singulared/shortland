@@ -4,18 +4,19 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use thiserror::Error;
 use tokio::sync::RwLock;
+use tracing::info;
 
 use super::{Backend, BackendError};
 
+#[derive(Default)]
 pub struct InMemoryBackend {
     storage: RwLock<(u64, HashMap<u64, String>)>,
 }
 
-impl Default for InMemoryBackend {
-    fn default() -> Self {
-        Self {
-            storage: RwLock::new((0, HashMap::new())),
-        }
+impl InMemoryBackend {
+    pub fn new() -> Self {
+        info!("Initialize InMemory backend");
+        Self::default()
     }
 }
 

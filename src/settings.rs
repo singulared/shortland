@@ -57,18 +57,12 @@ impl Default for RedisBackend {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Default, Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum Backend {
     Redis(RedisBackend),
-    // #[default]
-    // InMemory,
-}
-
-impl Default for Backend {
-    fn default() -> Self {
-        Backend::Redis(RedisBackend::default())
-    }
+    #[default]
+    InMemory,
 }
 
 #[derive(Default, Debug, Deserialize, Serialize, Clone)]
