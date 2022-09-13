@@ -13,6 +13,8 @@ pub enum BackendError {
     NotFound,
     #[error(transparent)]
     Internal(Box<dyn Error + Send + Sync>),
+    #[error("Datetime overflow")]
+    DateTimeOverflow,
 }
 
 #[async_trait]

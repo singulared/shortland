@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
-use redis::{aio::ConnectionManager, Client, IntoConnectionInfo, Script, RedisError};
+use redis::{aio::ConnectionManager, Client, IntoConnectionInfo, RedisError, Script};
 use uuid::Uuid;
 
 use super::{Backend, BackendError};
@@ -84,10 +84,9 @@ impl Backend for RedisBackend {
         let now = Utc::now();
         let today = now.date();
         let yesterday = today.pred();
-        let since = since.unwrap_or_else(|| {
-            now.checked_sub_signed(Duration::hours(DEFAULT_STAT_PERIOD_IN_HOURS))
-                .unwrap()
-        });
+        let since = since
+            .or_else(|| now.checked_sub_signed(Duration::hours(DEFAULT_STAT_PERIOD_IN_HOURS)))
+            .ok_or(BackendError::DateTimeOverflow)?;
         let stat = Script::new(RETRIVE_STAT)
             .arg(id)
             .arg(today.format(KEY_DATE_FORMAT).to_string())

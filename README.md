@@ -26,6 +26,6 @@ You may overload any configuration values with ENV like this:
 ```bash
 SL__HTTP__HOST=127.0.0.2 cargo run
 ```
-```sh
+```bash
 SL__BACKEND__TYPE=Redis SL__BACKEND__CONNECTION=redis://localhost:6379/3 cargo run
 ```
