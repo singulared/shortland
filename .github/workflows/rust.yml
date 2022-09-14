@@ -39,7 +39,7 @@ jobs:
 name: report
 on:
   workflow_run:
-    workflows: [test]
+    workflows: [Rust]
     types: [completed]
     
 permissions:
