@@ -30,8 +30,10 @@ impl HashIds {
 #[async_trait]
 impl Shortner for HashIds {
     async fn decode<'a>(&self, url: &'a str) -> Result<u64, ShortnerError> {
-        let a = self.convertor.decode(url)?;
-        Ok(a[0])
+        let id = *self.convertor.decode(url)?
+            .first()
+            .ok_or(ShortnerError::Decode(harsh::Error::Hex))?;
+        Ok(id)
     }
 
     async fn encode(&self, id: u64) -> Result<String, ShortnerError> {

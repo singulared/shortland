@@ -1,7 +1,4 @@
-use std::{
-    borrow::BorrowMut,
-    collections::{BTreeMap, BTreeSet, HashMap},
-};
+use std::collections::{BTreeMap, HashMap};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -83,15 +80,8 @@ impl Backend for InMemoryBackend {
     }
 
     async fn delete(&self, id: u64) -> Result<(), BackendError> {
-        self.storage
-            .write()
-            .await
-            .1
-            .remove(&id);
-        self.stat
-            .write()
-            .await
-            .remove(&id);
+        self.storage.write().await.1.remove(&id);
+        self.stat.write().await.remove(&id);
         Ok(())
     }
 }
