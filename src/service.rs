@@ -95,7 +95,7 @@ where
     }
 }
 
-pub async fn application(config: &Config) -> anyhow::Result<Router<Arc<AppState>>> {
+pub async fn application(config: &Config) -> anyhow::Result<Router> {
     let shortner = HashIds::new(None).context("Unable to initialize shortner")?;
     let backend: Box<BoxedBackend> = match &config.backend {
         settings::Backend::Redis(backend_config) => Box::new(
@@ -113,7 +113,7 @@ pub async fn application(config: &Config) -> anyhow::Result<Router<Arc<AppState>
         .build()
         .context("Unable to initialize application state")?;
 
-    let app = Router::with_state(Arc::new(state))
+    let app = Router::new()
         .route("/urls", post(create_shorten))
         .route(
             "/urls/:shorten",
@@ -124,6 +124,7 @@ pub async fn application(config: &Config) -> anyhow::Result<Router<Arc<AppState>
         .route("/urls/:shorten/stats", get(get_stat_by_shorten))
         .layer(ServiceBuilder::new().layer(
             TraceLayer::new_for_http().on_response(DefaultOnResponse::new().level(Level::INFO)),
-        ));
+        ))
+        .with_state(Arc::new(state));
     Ok(app)
 }
