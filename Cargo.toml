@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 async-trait = "0"
-axum = "0.6.12"
+axum = "0.6.18"
 chrono = "0.4"
 config = { version = "0.13", features = ["yaml", "toml"], default-features = false }
 harsh = "0.2"
