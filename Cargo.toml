@@ -13,7 +13,7 @@ chrono = "0.4"
 config = { version = "0.13", features = ["yaml", "toml"], default-features = false }
 harsh = "0.2"
 redis = { version = "0.23", features = ["aio", "connection-manager", "tokio-comp"] }
-semver = "1.0.17"
+semver = "1.0.18"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
