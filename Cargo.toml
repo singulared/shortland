@@ -15,7 +15,7 @@ harsh = "0.2"
 redis = { version = "0.25", features = ["aio", "connection-manager", "tokio-comp"] }
 semver = "1.0.23"
 serde = { version = "1", features = ["derive"] }
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tower = "0.4"
 tower-http = { version = "0.4", features = ["trace"] }
