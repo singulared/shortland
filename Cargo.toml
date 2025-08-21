@@ -10,7 +10,7 @@ anyhow = "1"
 async-trait = "0"
 axum = "0.6.20"
 chrono = "0.4"
-config = { version = "0.14", features = ["yaml", "toml"], default-features = false }
+config = { version = "0.15", features = ["yaml", "toml"], default-features = false }
 harsh = "0.2"
 redis = { version = "0.25", features = ["aio", "connection-manager", "tokio-comp"] }
 semver = "1.0.23"
